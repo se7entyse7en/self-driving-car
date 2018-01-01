@@ -1,0 +1,7 @@
+name: self-driving-car
+channels:
+- conda-forge
+- defaults
+dependencies:
+- python=3.6.4=0
+prefix: /Users/se7entyse7en/miniconda3/envs/self-driving-car
