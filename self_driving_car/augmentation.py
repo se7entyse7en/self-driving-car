@@ -12,6 +12,12 @@ class ImageDataAugmenter(object):
         raise NotImplementedError()
 
 
+class HorizontalFlipImageDataAugmenter(ImageDataAugmenter):
+
+    def process(self, image):
+        return cv2.flip(image, 1)
+
+
 class BrightnessImageDataAugmenter(ImageDataAugmenter):
 
     def process(self, image, perc):
