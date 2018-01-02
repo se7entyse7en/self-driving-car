@@ -18,6 +18,18 @@ class HorizontalFlipImageDataAugmenter(ImageDataAugmenter):
         return cv2.flip(image, 1)
 
 
+class RorationImageDataAugenter(ImageDataAugmenter):
+
+    def process(self, image, angle, center=None):
+        height, width = image.shape[:2]
+
+        if center is None:
+            center = (width // 2, height // 2)
+
+        M = cv2.getRotationMatrix2D(center, angle, 1)
+        return cv2.warpAffine(image, M, (width, height))
+
+
 class BrightnessImageDataAugmenter(ImageDataAugmenter):
 
     def process(self, image, perc):
