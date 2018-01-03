@@ -12,6 +12,13 @@ class ImageDataAugmenter(object):
         raise NotImplementedError()
 
 
+class VerticalShiftImageDataAugmenter(ImageDataAugmenter):
+
+    def process(self, image, shift):
+        M = np.float64([[1, 0, 0], [0, 1, -shift]])
+        return cv2.warpAffine(image, M, (image.shape[1], image.shape[0]))
+
+
 class BlurringImageDataAugmenter(ImageDataAugmenter):
 
     def process(self, image, window_size):
