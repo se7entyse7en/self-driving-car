@@ -12,6 +12,12 @@ class ImageDataAugmenter(object):
         raise NotImplementedError()
 
 
+class BlurringImageDataAugmenter(ImageDataAugmenter):
+
+    def process(self, image, window_size):
+        return cv2.blur(image, (window_size, window_size))
+
+
 class HorizontalFlipImageDataAugmenter(ImageDataAugmenter):
 
     def process(self, image):
