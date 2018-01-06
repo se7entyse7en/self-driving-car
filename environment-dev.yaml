@@ -1,0 +1,12 @@
+name: self-driving-car
+channels:
+- conda-forge
+- defaults
+dependencies:
+- opencv=3.3.0=py36_blas_openblas_203
+- numpy=1.13.3=py36_blas_openblas_201
+- python=3.6.4=0
+# The following dependencies are for development only
+- flake8=3.5.0=py36_0
+- isort=4.2.15=py36_0
+prefix: /Users/se7entyse7en/miniconda3/envs/self-driving-car
