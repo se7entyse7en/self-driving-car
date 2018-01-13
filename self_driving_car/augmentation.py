@@ -29,6 +29,8 @@ class BaseRegionBrightnessDataAugmenter(ImageDataAugmenter):
                     if j <= value:
                         mask[i][j] = True
 
+        # This is required in order to avoid wrap-around in the following
+        # operation as `V` has dtype `uint8`
         V = V.astype('float64')
         V_modifier = V * brightness_perc / 100
         V_modifier[~mask] = 0
@@ -95,6 +97,8 @@ class BrightnessImageDataAugmenter(ImageDataAugmenter):
         hsv_image = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
         H, S, V = cv2.split(hsv_image)
 
+        # This is required in order to avoid wrap-around in the following
+        # operation as `V` has dtype `uint8`
         V = V.astype('float64')
         V_modifier = V * perc / 100
         V_modified = np.clip(V + V_modifier, 0, 255).astype('uint8')
@@ -112,9 +116,11 @@ class HueImageDataAugmenter(ImageDataAugmenter):
         hsv_image = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
         H, S, V = cv2.split(hsv_image)
 
+        # This is required in order to avoid wrap-around in the following
+        # operation as `H` has dtype `uint8`
+        H = H.astype('float64')
         # The value of H is halved to fit in [0, 255]. See link:
         # https://docs.opencv.org/3.3.0/de/d25/imgproc_color_conversions.html
-        H = H.astype('float64')
         H_modified = ((H * 2 + angle) % 360 / 2).astype('uint8')
         image = cv2.merge([H_modified, S, V])
         return cv2.cvtColor(image, cv2.COLOR_HSV2RGB)
@@ -126,6 +132,8 @@ class SaturationImageDataAugmenter(ImageDataAugmenter):
         hsv_image = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
         H, S, V = cv2.split(hsv_image)
 
+        # This is required in order to avoid wrap-around in the following
+        # operation as `S` has dtype `uint8`
         S = S.astype('float64')
         S_modifier = S * perc / 100
         S_modified = np.clip(S + S_modifier, 0, 255).astype('uint8')
