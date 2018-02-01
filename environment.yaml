@@ -6,4 +6,6 @@ dependencies:
 - opencv=3.3.0=py36_blas_openblas_203
 - numpy=1.13.3=py36_blas_openblas_201
 - python=3.6.4=0
+- pip:
+  - keras==2.1.3
 prefix: /Users/se7entyse7en/miniconda3/envs/self-driving-car
