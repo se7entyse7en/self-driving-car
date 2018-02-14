@@ -6,6 +6,7 @@ dependencies:
 - h5py=2.7.1=py36_2
 - opencv=3.3.0=py36_blas_openblas_203
 - numpy=1.13.3=py36_blas_openblas_201
+- pandas=0.22.0=py36_0
 - python=3.6.4=0
 - pip:
   - tensorflow==1.4.0
