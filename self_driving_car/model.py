@@ -5,6 +5,7 @@ from keras.layers import Conv2D
 from keras.layers import Dense
 from keras.layers import Flatten
 from keras.layers import Lambda
+
 from self_driving_car.augmentation import BlurringImageDataAugmenter
 from self_driving_car.augmentation import BrightnessImageDataAugmenter
 from self_driving_car.augmentation import HorizontalFlipImageDataAugmenter
