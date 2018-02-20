@@ -44,7 +44,7 @@ def build_model(input_shape, sgd_optimizer_params):
     return model
 
 
-def load_data_generator(csv_path, augmenters_probs, test_size):
+def load_data_generator(csv_path, augmenters_probs=None, test_size=0.25):
     augmenters = [
         BlurringImageDataAugmenter(),
         BrightnessImageDataAugmenter(),
@@ -61,8 +61,8 @@ def load_data_generator(csv_path, augmenters_probs, test_size):
                             test_size=test_size)
 
 
-def train_model(model, csv_path, augmenters_probs, batch_size, test_size,
-                **kwargs):
+def train_model(model, csv_path, batch_size, augmenters_probs=None,
+                test_size=0.25, **kwargs):
     data_generator = load_data_generator(csv_path, augmenters_probs, test_size)
     checkpoint = ModelCheckpoint('model-{epoch:03d}.h5', save_best_only=True)
 
