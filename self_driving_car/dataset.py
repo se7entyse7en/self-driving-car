@@ -2,6 +2,8 @@ import random
 
 import cv2
 
+import numpy as np
+
 import pandas as pd
 
 from self_driving_car.augmentation import HorizontalFlipImageDataAugmenter
@@ -87,18 +89,18 @@ class DatasetGenerator(object):
 
     def _dataset_batch_generator(self, dataset, batch_size, use_augmenters):
         i = 0
-        batch_images, batch_steerings = [], []
+        batch_images = np.empty([batch_size, IMAGE_HEIGHT, IMAGE_WIDTH, 3])
+        batch_steerings = np.empty(batch_size)
         while True:
             for _, row in self._shuffle_dataset(dataset).iterrows():
                 for image, steering_angle in self._flow_from_row(
                         row, use_augmenters):
-                    batch_images.append(image)
-                    batch_steerings.append(steering_angle)
+                    batch_images[i] = image
+                    batch_steerings[i] = steering_angle
                     i += 1
                     if i == batch_size:
                         yield batch_images, batch_steerings
                         i = 0
-                        batch_images, batch_steerings = [], []
 
 
 def preprocess_image(image_path):
