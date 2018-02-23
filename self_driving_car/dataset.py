@@ -57,7 +57,7 @@ class DatasetGenerator(object):
 
     def preprocess_images(self, images_paths):
         # Only use center image for now
-        yield preprocess_image(images_paths[0])
+        yield preprocess_image_from_path(images_paths[0])
 
     def _shuffle_dataset(self, dataset):
         return dataset.sample(frac=1).reset_index(drop=True)
@@ -103,8 +103,12 @@ class DatasetGenerator(object):
                         i = 0
 
 
-def preprocess_image(image_path):
+def preprocess_image_from_path(image_path):
     image = cv2.cvtColor(cv2.imread(image_path), cv2.COLOR_BGR2RGB)
+    return preprocess_image(image)
+
+
+def preprocess_image(image):
     # Crop 25 pixels from bottom to remove car parts
     cropped_image = image[:-25, :]
     return cv2.resize(cropped_image, (IMAGE_WIDTH, IMAGE_HEIGHT),

@@ -61,7 +61,7 @@ def load_data_generator(csv_path, augmenters_probs=None, test_size=0.25):
                             test_size=test_size)
 
 
-def train_model(model, csv_path, batch_size, augmenters_probs=None,
+def train_model(model, csv_path, batch_size, epochs, augmenters_probs=None,
                 test_size=0.25, **kwargs):
     data_generator = load_data_generator(csv_path, augmenters_probs, test_size)
     checkpoint = ModelCheckpoint('model-{epoch:03d}.h5', save_best_only=True)
@@ -71,7 +71,7 @@ def train_model(model, csv_path, batch_size, augmenters_probs=None,
     model.fit_generator(
         training_set_gen,
         steps_per_epoch=int(data_generator.training_size / batch_size),
-        epochs=1,
+        epochs=epochs,
         verbose=1,
         callbacks=[checkpoint],
         validation_data=test_set_gen,
