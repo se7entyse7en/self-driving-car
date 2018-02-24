@@ -47,9 +47,11 @@ class DatasetGenerator(object):
         for _, row in self._dataset.iterrows():
             yield from self._flow_from_row(row, use_augmenters)
 
-    def training_set_batch_generator(self, batch_size):
+    def training_set_batch_generator(self, batch_size,
+                                     discard_low_steerings=False):
         yield from self._dataset_batch_generator(
-            self._training_set, batch_size, True)
+            self._training_set, batch_size, True,
+            discard_low_steerings=discard_low_steerings)
 
     def test_set_batch_generator(self, batch_size):
         yield from self._dataset_batch_generator(
@@ -87,7 +89,8 @@ class DatasetGenerator(object):
 
         return augmented_image, steering_angle
 
-    def _dataset_batch_generator(self, dataset, batch_size, use_augmenters):
+    def _dataset_batch_generator(self, dataset, batch_size, use_augmenters,
+                                 discard_low_steerings=False):
         i = 0
         batch_images = np.empty([batch_size, IMAGE_HEIGHT, IMAGE_WIDTH, 3])
         batch_steerings = np.empty(batch_size)
@@ -95,6 +98,11 @@ class DatasetGenerator(object):
             for _, row in self._shuffle_dataset(dataset).iterrows():
                 for image, steering_angle in self._flow_from_row(
                         row, use_augmenters):
+                    if (discard_low_steerings and
+                        abs(steering_angle) < 0.1 and
+                            random.random() >= 0.3):
+                        continue
+
                     batch_images[i] = image
                     batch_steerings[i] = steering_angle
                     i += 1

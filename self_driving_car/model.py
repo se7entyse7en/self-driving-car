@@ -70,7 +70,9 @@ def train_model(model, csv_path, batch_size, epochs, augmenters_probs=None,
     data_generator = load_data_generator(csv_path, augmenters_probs, test_size)
     checkpoint = ModelCheckpoint('model-{epoch:03d}.h5', save_best_only=True)
 
-    training_set_gen = data_generator.training_set_batch_generator(batch_size)
+    training_set_gen = data_generator.training_set_batch_generator(
+        batch_size, discard_low_steerings=kwargs.get(
+            'discard_low_steerings', False))
     test_set_gen = data_generator.test_set_batch_generator(batch_size)
 
     steps_per_epoch = kwargs.get(
