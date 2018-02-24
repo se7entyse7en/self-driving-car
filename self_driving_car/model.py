@@ -72,14 +72,21 @@ def train_model(model, csv_path, batch_size, epochs, augmenters_probs=None,
 
     training_set_gen = data_generator.training_set_batch_generator(batch_size)
     test_set_gen = data_generator.test_set_batch_generator(batch_size)
+
+    steps_per_epoch = kwargs.get(
+        'steps_per_epoch', int(data_generator.training_size / batch_size)
+    )
+    validation_steps = kwargs.get(
+        'validation_steps', int(data_generator.test_size / batch_size)
+    )
     history = model.fit_generator(
         training_set_gen,
-        steps_per_epoch=int(data_generator.training_size / batch_size),
+        steps_per_epoch=steps_per_epoch,
         epochs=epochs,
         verbose=1,
         callbacks=[checkpoint],
         validation_data=test_set_gen,
-        validation_steps=int(data_generator.test_size / batch_size),
+        validation_steps=validation_steps,
     )
 
     if plot_history:
