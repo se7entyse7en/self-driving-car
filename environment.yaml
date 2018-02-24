@@ -7,6 +7,7 @@ dependencies:
 - opencv=3.3.0=py36_blas_openblas_203
 - numpy=1.13.3=py36_blas_openblas_201
 - pandas=0.22.0=py36_0
+- matplotlib=2.1.2=py36_0
 - python=3.6.4=0
 - pip:
   - tensorflow==1.4.0
