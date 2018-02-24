@@ -4,7 +4,7 @@ channels:
 - defaults
 dependencies:
 - h5py=2.7.1=py36_2
-- opencv=3.3.0=py36_blas_openblas_203
+- opencv=3.3.1=py36h60a5f38_1
 - numpy=1.13.3=py36_blas_openblas_201
 - pandas=0.22.0=py36_0
 - matplotlib=2.1.2=py36_0
