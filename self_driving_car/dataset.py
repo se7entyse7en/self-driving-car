@@ -1,5 +1,3 @@
-import random
-
 import cv2
 
 import numpy as np
@@ -15,34 +13,32 @@ CROP_TOP, CROP_BOTTOM = 50, 25
 
 class DatasetGenerator(object):
 
-    def __init__(self, csv_path, image_data_augmenters,
-                 data_augmenters_probs=None, test_size=0.25):
-        self._csv_path = csv_path
-        self._dataset = pd.read_csv(
-            self._csv_path, header=None,
+    def __init__(self, training_set, test_set, image_data_augmenters):
+        self._training_set = training_set
+        self._test_set = test_set
+        self._augmenters = image_data_augmenters
+
+    @classmethod
+    def from_csv(cls, csv_path, image_data_augmenters, test_size=0.25):
+        dataset = pd.read_csv(
+            csv_path, header=None,
             names=('center_image_path', 'left_image_path', 'right_image_path',
                    'steering_angle', 'speed', 'throttle', 'brake')
         )
-        shuffled_dataset = self._shuffle_dataset(self._dataset)
+        shuffled_dataset = cls.shuffle_dataset(dataset)
 
         n_rows = shuffled_dataset.shape[0]
-        self._training_size = int(n_rows * (1 - test_size))
-        self._test_size = n_rows - self._training_size
+        training_size = int(n_rows * (1 - test_size))
+        test_size = n_rows - training_size
 
-        self._training_set = shuffled_dataset.head(self._training_size)
-        self._test_set = shuffled_dataset.tail(-self._test_size)
+        training_set = shuffled_dataset.head(training_size)
+        test_set = shuffled_dataset.tail(-test_size)
 
-        self._augmenters = image_data_augmenters
-        self._augmenters_probs = (data_augmenters_probs or
-                                  [0.5] * len(self._augmenters))
+        return cls(training_set, test_set, image_data_augmenters)
 
-    @property
-    def training_size(self):
-        return self._training_size
-
-    @property
-    def test_size(self):
-        return self._test_size
+    @classmethod
+    def shuffle_dataset(cls, dataset):
+        return dataset.sample(frac=1).reset_index(drop=True)
 
     def flow(self, use_augmenters=True):
         for _, row in self._dataset.iterrows():
@@ -56,26 +52,18 @@ class DatasetGenerator(object):
         yield from self._dataset_batch_generator(
             self._test_set, batch_size, False)
 
-    def preprocess_images(self, images_paths):
-        # Only use center image for now
-        yield preprocess_image_from_path(images_paths[0])
-
-    def _shuffle_dataset(self, dataset):
-        return dataset.sample(frac=1).reset_index(drop=True)
-
     def _flow_from_row(self, row, use_augmenters):
-        images_paths = (row['center_image_path'],
-                        row['left_image_path'],
-                        row['right_image_path'])
         steering_angle = row['steering_angle']
 
-        for image in self.preprocess_images(images_paths):
-            if use_augmenters:
-                for aug, aug_prob in zip(self._augmenters,
-                                         self._augmenters_probs):
-                    if random.random() > aug_prob:
-                        continue
+        images = {
+            'center': preprocess_image_from_path(row['center_image_path']),
+            'left': preprocess_image_from_path(row['left_image_path']),
+            'right': preprocess_image_from_path(row['right_image_path']),
+        }
 
+        for pov, image in images.items():
+            if use_augmenters:
+                for aug in self._augmenters:
                     image, steering_angle = self._augment(
                         aug, image, steering_angle)
 
