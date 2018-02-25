@@ -9,7 +9,8 @@ import pandas as pd
 from self_driving_car.augmentation import HorizontalFlipImageDataAugmenter
 
 
-IMAGE_WIDTH, IMAGE_HEIGHT = 200, 66
+IMAGE_WIDTH, IMAGE_HEIGHT = 64, 64
+CROP_TOP, CROP_BOTTOM = 50, 25
 
 
 class DatasetGenerator(object):
@@ -89,7 +90,8 @@ class DatasetGenerator(object):
 
     def _dataset_batch_generator(self, dataset, batch_size, use_augmenters):
         i = 0
-        batch_images = np.empty([batch_size, IMAGE_HEIGHT, IMAGE_WIDTH, 3])
+        batch_images = np.empty([batch_size, IMAGE_HEIGHT, IMAGE_WIDTH, 3],
+                                dtype=np.uint8)
         batch_steerings = np.empty(batch_size)
         while True:
             for _, row in self._shuffle_dataset(dataset).iterrows():
@@ -109,7 +111,8 @@ def preprocess_image_from_path(image_path):
 
 
 def preprocess_image(image):
-    # Crop 25 pixels from bottom to remove car parts
-    cropped_image = image[:-25, :]
+    # Crop from bottom to remove car parts
+    # Crop from top to remove part of the sky
+    cropped_image = image[CROP_TOP:-CROP_BOTTOM, :]
     return cv2.resize(cropped_image, (IMAGE_WIDTH, IMAGE_HEIGHT),
                       interpolation=cv2.INTER_AREA)
