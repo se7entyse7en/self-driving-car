@@ -9,6 +9,11 @@ from self_driving_car.augmentation import HorizontalFlipImageDataAugmenter
 
 IMAGE_WIDTH, IMAGE_HEIGHT = 64, 64
 CROP_TOP, CROP_BOTTOM = 50, 25
+STEERING_CORRECTION = {
+    'left': 0.25,
+    'center': 0,
+    'right': -0.25
+}
 
 
 class DatasetGenerator(object):
@@ -40,19 +45,21 @@ class DatasetGenerator(object):
     def shuffle_dataset(cls, dataset):
         return dataset.sample(frac=1).reset_index(drop=True)
 
-    def flow(self, use_augmenters=True):
+    def flow(self, use_augmenters=True, use_steering_correction=True):
         for _, row in self._dataset.iterrows():
-            yield from self._flow_from_row(row, use_augmenters)
+            yield from self._flow_from_row(row, use_augmenters,
+                                           use_steering_correction)
 
-    def training_set_batch_generator(self, batch_size):
+    def training_set_batch_generator(self, batch_size,
+                                     use_steering_correction=True):
         yield from self._dataset_batch_generator(
-            self._training_set, batch_size, True)
+            self._training_set, batch_size, True, use_steering_correction=True)
 
     def test_set_batch_generator(self, batch_size):
         yield from self._dataset_batch_generator(
             self._test_set, batch_size, False)
 
-    def _flow_from_row(self, row, use_augmenters):
+    def _flow_from_row(self, row, use_augmenters, use_steering_correction):
         steering_angle = row['steering_angle']
 
         images = {
@@ -67,6 +74,8 @@ class DatasetGenerator(object):
                     image, steering_angle = self._augment(
                         aug, image, steering_angle)
 
+            if use_steering_correction:
+                steering_angle += STEERING_CORRECTION[pov]
             yield image, steering_angle
 
     def _augment(self, augmenter, image, steering_angle):
@@ -76,7 +85,8 @@ class DatasetGenerator(object):
 
         return augmented_image, steering_angle
 
-    def _dataset_batch_generator(self, dataset, batch_size, use_augmenters):
+    def _dataset_batch_generator(self, dataset, batch_size, use_augmenters,
+                                 use_steering_correction):
         i = 0
         batch_images = np.empty([batch_size, IMAGE_HEIGHT, IMAGE_WIDTH, 3],
                                 dtype=np.uint8)
@@ -84,7 +94,7 @@ class DatasetGenerator(object):
         while True:
             for _, row in self._shuffle_dataset(dataset).iterrows():
                 for image, steering_angle in self._flow_from_row(
-                        row, use_augmenters):
+                        row, use_augmenters, use_steering_correction):
                     batch_images[i] = image
                     batch_steerings[i] = steering_angle
                     i += 1
