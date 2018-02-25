@@ -89,7 +89,8 @@ class DatasetGenerator(object):
 
     def _dataset_batch_generator(self, dataset, batch_size, use_augmenters):
         i = 0
-        batch_images = np.empty([batch_size, IMAGE_HEIGHT, IMAGE_WIDTH, 3])
+        batch_images = np.empty([batch_size, IMAGE_HEIGHT, IMAGE_WIDTH, 3],
+                                dtype=np.uint8)
         batch_steerings = np.empty(batch_size)
         while True:
             for _, row in self._shuffle_dataset(dataset).iterrows():
