@@ -24,20 +24,25 @@ class DatasetGenerator(object):
         self._augmenters = image_data_augmenters
 
     @classmethod
-    def from_csv(cls, csv_path, image_data_augmenters, test_size=0.25):
+    def from_csv(cls, csv_path, image_data_augmenters, test_size=0.25,
+                 use_center_only=False):
         dataset = pd.read_csv(
             csv_path, header=None,
-            names=('center_image_path', 'left_image_path', 'right_image_path',
-                   'steering_angle', 'speed', 'throttle', 'brake')
+            names=('center', 'left', 'right', 'steering_angle',
+                   'speed', 'throttle', 'brake')
         )
-        shuffled_dataset = cls.shuffle_dataset(dataset)
+        dataset = pd.melt(dataset, id_vars=['steering_angle'],
+                          value_vars=['center', 'left', 'right'],
+                          var_name='pov', value_name='path')
 
-        n_rows = shuffled_dataset.shape[0]
-        training_size = int(n_rows * (1 - test_size))
-        test_size = n_rows - training_size
+        center_only = dataset[dataset.pov == 'center']
+        not_center_only = dataset[dataset.pov != 'center']
 
-        training_set = shuffled_dataset.head(training_size)
-        test_set = shuffled_dataset.tail(-test_size)
+        test_set = center_only.sample(frac=test_size)
+        training_set = center_only.iloc[~center_only.index.isin(
+            test_set.index)]
+        if not use_center_only:
+            training_set = pd.concat([training_set, not_center_only])
 
         return cls(training_set, test_set, image_data_augmenters)
 
@@ -45,45 +50,24 @@ class DatasetGenerator(object):
     def shuffle_dataset(cls, dataset):
         return dataset.sample(frac=1).reset_index(drop=True)
 
-    def flow(self, use_augmenters=True, use_steering_correction=True):
-        for _, row in self._dataset.iterrows():
-            yield from self._flow_from_row(row, use_augmenters,
-                                           use_steering_correction)
+    @property
+    def training_set(self):
+        return self._training_set
+
+    @property
+    def test_set(self):
+        return self._test_set
 
     def training_set_batch_generator(self, batch_size,
+                                     use_augmenters=True,
                                      use_steering_correction=True):
         yield from self._dataset_batch_generator(
-            self._training_set, batch_size, True, use_steering_correction=True)
+            self._training_set, batch_size, use_augmenters,
+            use_steering_correction)
 
     def test_set_batch_generator(self, batch_size):
         yield from self._dataset_batch_generator(
-            self._test_set, batch_size, False)
-
-    def _flow_from_row(self, row, use_augmenters, use_steering_correction):
-        steering_angle = row['steering_angle']
-
-        images = {
-            'center': preprocess_image_from_path(row['center_image_path']),
-            'left': preprocess_image_from_path(row['left_image_path']),
-            'right': preprocess_image_from_path(row['right_image_path']),
-        }
-
-        for pov, image in images.items():
-            if use_augmenters:
-                for aug in self._augmenters:
-                    image, steering_angle = self._augment(
-                        aug, image, steering_angle)
-
-            if use_steering_correction:
-                steering_angle += STEERING_CORRECTION[pov]
-            yield image, steering_angle
-
-    def _augment(self, augmenter, image, steering_angle):
-        augmented_image = augmenter.process_random(image)
-        if isinstance(augmenter, HorizontalFlipImageDataAugmenter):
-            steering_angle = -steering_angle
-
-        return augmented_image, steering_angle
+            self._test_set, batch_size, False, False)
 
     def _dataset_batch_generator(self, dataset, batch_size, use_augmenters,
                                  use_steering_correction):
@@ -92,15 +76,41 @@ class DatasetGenerator(object):
                                 dtype=np.uint8)
         batch_steerings = np.empty(batch_size)
         while True:
-            for _, row in self._shuffle_dataset(dataset).iterrows():
-                for image, steering_angle in self._flow_from_row(
-                        row, use_augmenters, use_steering_correction):
-                    batch_images[i] = image
-                    batch_steerings[i] = steering_angle
-                    i += 1
-                    if i == batch_size:
-                        yield batch_images, batch_steerings
-                        i = 0
+            for image, steering_angle in self._flow(
+                    self.shuffle_dataset(dataset), use_augmenters,
+                    use_steering_correction):
+                batch_images[i] = image
+                batch_steerings[i] = steering_angle
+                i += 1
+                if i == batch_size:
+                    yield batch_images, batch_steerings
+                    i = 0
+
+    def _flow(self, dataset, use_augmenters, use_steering_correction):
+        for _, row in dataset.iterrows():
+            yield self._flow_from_row(row, use_augmenters,
+                                      use_steering_correction)
+
+    def _flow_from_row(self, row, use_augmenters, use_steering_correction):
+        image = preprocess_image_from_path(row['path'])
+        steering_angle = row['steering_angle']
+
+        if use_augmenters:
+            for aug in self._augmenters:
+                image, steering_angle = self._augment(
+                    aug, image, steering_angle)
+
+        if use_steering_correction:
+            steering_angle += STEERING_CORRECTION[row['pov']]
+
+        return image, steering_angle
+
+    def _augment(self, augmenter, image, steering_angle):
+        augmented_image = augmenter.process_random(image)
+        if isinstance(augmenter, HorizontalFlipImageDataAugmenter):
+            steering_angle = -steering_angle
+
+        return augmented_image, steering_angle
 
 
 def preprocess_image_from_path(image_path):
