@@ -95,13 +95,13 @@ class DatasetGenerator(object):
         image = preprocess_image_from_path(row['path'])
         steering_angle = row['steering_angle']
 
+        if use_steering_correction:
+            steering_angle += STEERING_CORRECTION[row['pov']]
+
         if use_augmenters:
             for aug in self._augmenters:
                 image, steering_angle = self._augment(
                     aug, image, steering_angle)
-
-        if use_steering_correction:
-            steering_angle += STEERING_CORRECTION[row['pov']]
 
         return image, steering_angle
 
