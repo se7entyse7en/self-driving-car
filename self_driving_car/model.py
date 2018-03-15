@@ -42,12 +42,12 @@ def build_model(input_shape, sgd_optimizer_params):
     model.add(Dense(1))
 
     sgd = optimizers.SGD(*sgd_optimizer_params)
-    model.compile(loss='mse', optimizer=sgd, metrics=['accuracy'])
+    model.compile(loss='mse', optimizer=sgd, metrics=['mae'])
 
     return model
 
 
-def load_data_generator(csv_path, augmenters_probs=None, test_size=0.25):
+def load_data_generator(csv_path, test_size=0.25, use_center_only=False):
     augmenters = [
         BlurringImageDataAugmenter(),
         BrightnessImageDataAugmenter(),
@@ -59,25 +59,29 @@ def load_data_generator(csv_path, augmenters_probs=None, test_size=0.25):
         ShadowImageDataAugmenter(),
         VerticalShiftImageDataAugmenter(),
     ]
-    return DatasetGenerator(csv_path, augmenters,
-                            data_augmenters_probs=augmenters_probs,
-                            test_size=test_size)
+    return DatasetGenerator.from_csv(csv_path, augmenters, test_size=test_size,
+                                     use_center_only=use_center_only)
 
 
-def train_model(model, csv_path, batch_size, epochs, augmenters_probs=None,
-                test_size=0.25, plot_history=False, plot_output_file=None,
-                **kwargs):
-    data_generator = load_data_generator(csv_path, augmenters_probs, test_size)
-    checkpoint = ModelCheckpoint('model-{epoch:03d}.h5', save_best_only=True)
+def train_model(model, csv_path, batch_size, epochs, test_size=0.25,
+                use_center_only=False, use_augmenters=True,
+                use_steering_correction=True, plot_history=False,
+                plot_output_file=None, **kwargs):
+    data_generator = load_data_generator(csv_path, test_size=test_size,
+                                         use_center_only=use_center_only)
+    checkpoint = ModelCheckpoint('model-{epoch:03d}.h5')
 
-    training_set_gen = data_generator.training_set_batch_generator(batch_size)
+    training_set_gen = data_generator.training_set_batch_generator(
+        batch_size, use_augmenters=use_augmenters,
+        use_steering_correction=use_steering_correction)
     test_set_gen = data_generator.test_set_batch_generator(batch_size)
 
     steps_per_epoch = kwargs.get(
-        'steps_per_epoch', int(data_generator.training_size / batch_size)
+        'steps_per_epoch', int(
+            data_generator.training_set.shape[0] / batch_size)
     )
     validation_steps = kwargs.get(
-        'validation_steps', int(data_generator.test_size / batch_size)
+        'validation_steps', int(data_generator.test_set.shape[0] / batch_size)
     )
     history = model.fit_generator(
         training_set_gen,
@@ -98,10 +102,11 @@ def plot_training_history(history, figsize=(12, 5), plot_output_file=None,
                           **kwargs):
     fig, axes = plt.subplots(1, 2, figsize=figsize)
 
-    _subplot_training_history(history, axes[0], 'Epoch', 'Accuracy',
-                              'Model accuracy', 'acc', 'val_acc')
-    _subplot_training_history(history, axes[1], 'Epoch', 'Loss',
-                              'Model loss', 'loss', 'val_loss')
+    _subplot_training_history(history, axes[0], 'Epoch', 'MAE',
+                              'Model MAE', 'mean_absolute_error',
+                              'val_mean_absolute_error')
+    _subplot_training_history(history, axes[1], 'Epoch', 'Loss (MSE)',
+                              'Model loss (MSE)', 'loss', 'val_loss')
 
     fig.suptitle('Training history', fontsize=16)
 
