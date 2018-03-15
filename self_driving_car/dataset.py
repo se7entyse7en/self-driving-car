@@ -8,7 +8,7 @@ from self_driving_car.augmentation import HorizontalFlipImageDataAugmenter
 
 
 IMAGE_WIDTH, IMAGE_HEIGHT = 64, 64
-CROP_TOP, CROP_BOTTOM = 50, 25
+CROP_TOP, CROP_BOTTOM = 30, 25
 STEERING_CORRECTION = {
     'left': 0.25,
     'center': 0,
