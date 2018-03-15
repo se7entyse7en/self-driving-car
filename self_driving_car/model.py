@@ -69,7 +69,7 @@ def train_model(model, csv_path, batch_size, epochs, test_size=0.25,
                 plot_output_file=None, **kwargs):
     data_generator = load_data_generator(csv_path, test_size=test_size,
                                          use_center_only=use_center_only)
-    checkpoint = ModelCheckpoint('model-{epoch:03d}.h5', save_best_only=True)
+    checkpoint = ModelCheckpoint('model-{epoch:03d}.h5')
 
     training_set_gen = data_generator.training_set_batch_generator(
         batch_size, use_augmenters=use_augmenters,
