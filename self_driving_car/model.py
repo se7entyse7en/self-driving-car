@@ -42,7 +42,7 @@ def build_model(input_shape, sgd_optimizer_params):
     model.add(Dense(1))
 
     sgd = optimizers.SGD(*sgd_optimizer_params)
-    model.compile(loss='mse', optimizer=sgd, metrics=['accuracy'])
+    model.compile(loss='mse', optimizer=sgd, metrics=['mae'])
 
     return model
 
@@ -102,10 +102,11 @@ def plot_training_history(history, figsize=(12, 5), plot_output_file=None,
                           **kwargs):
     fig, axes = plt.subplots(1, 2, figsize=figsize)
 
-    _subplot_training_history(history, axes[0], 'Epoch', 'Accuracy',
-                              'Model accuracy', 'acc', 'val_acc')
-    _subplot_training_history(history, axes[1], 'Epoch', 'Loss',
-                              'Model loss', 'loss', 'val_loss')
+    _subplot_training_history(history, axes[0], 'Epoch', 'MAE',
+                              'Model MAE', 'mean_absolute_error',
+                              'val_mean_absolute_error')
+    _subplot_training_history(history, axes[1], 'Epoch', 'Loss (MSE)',
+                              'Model loss (MSE)', 'loss', 'val_loss')
 
     fig.suptitle('Training history', fontsize=16)
 
