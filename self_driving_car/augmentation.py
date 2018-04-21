@@ -88,7 +88,7 @@ class ReflectionImageDataAugmenter(BaseRegionBrightnessDataAugmenter):
     def gen_random_kwargs(self, image):
         kwargs = super(ReflectionImageDataAugmenter, self).gen_random_kwargs(
             image)
-        kwargs['brightness_perc'] = random.uniform(25, 75)
+        kwargs['brightness_perc'] = random.uniform(0, 25)
 
         return kwargs
 
@@ -104,7 +104,7 @@ class ShadowImageDataAugmenter(BaseRegionBrightnessDataAugmenter):
 
     def gen_random_kwargs(self, image):
         kwargs = super(ShadowImageDataAugmenter, self).gen_random_kwargs(image)
-        kwargs['brightness_perc'] = random.uniform(-75, -25)
+        kwargs['brightness_perc'] = random.uniform(-25, 0)
 
         return kwargs
 
@@ -117,12 +117,8 @@ class VerticalShiftImageDataAugmenter(ImageDataAugmenter):
 
     def gen_random_kwargs(self, image):
         height = image.shape[0]
-        min_shift = height / 100 * 5
-        max_shift = height / 100 * 10
-        shift = random.uniform(min_shift, max_shift)
-        negative_shift = random.choice([True, False])
-        if negative_shift:
-            shift = -shift
+        max_abs_shift = height / 100 * 7.5
+        shift = random.uniform(-max_abs_shift, max_abs_shift)
 
         return {'shift': shift}
 
@@ -133,7 +129,7 @@ class BlurringImageDataAugmenter(ImageDataAugmenter):
         return cv2.blur(image, (window_size, window_size))
 
     def gen_random_kwargs(self, image):
-        return {'window_size': random.choice([3, 5, 7])}
+        return {'window_size': random.choice(range(1, 9, 2))}
 
 
 class HorizontalFlipImageDataAugmenter(ImageDataAugmenter):
@@ -157,12 +153,7 @@ class RotationImageDataAugenter(ImageDataAugmenter):
         return cv2.warpAffine(image, M, (width, height))
 
     def gen_random_kwargs(self, image):
-        angle = random.uniform(5, 15)
-        negative_angle = random.choice([True, False])
-        if negative_angle:
-            angle = -angle
-
-        return {'angle': angle}
+        return {'angle': random.uniform(-5, 5)}
 
 
 class BrightnessImageDataAugmenter(ImageDataAugmenter):
@@ -181,12 +172,7 @@ class BrightnessImageDataAugmenter(ImageDataAugmenter):
         return cv2.cvtColor(image, cv2.COLOR_HSV2RGB)
 
     def gen_random_kwargs(self, image):
-        perc = random.uniform(25, 75)
-        negative_perc = random.choice([True, False])
-        if negative_perc:
-            perc = -perc
-
-        return {'perc': perc}
+        return {'perc': random.uniform(-25, 25)}
 
 
 class HueImageDataAugmenter(ImageDataAugmenter):
@@ -208,10 +194,7 @@ class HueImageDataAugmenter(ImageDataAugmenter):
         return cv2.cvtColor(image, cv2.COLOR_HSV2RGB)
 
     def gen_random_kwargs(self, image):
-        choices = list(range(-180, 195, 15))
-        choices.pop(12)
-
-        return {'angle': random.choice(choices)}
+        return {'angle': random.choice(range(-25, 25))}
 
 
 class SaturationImageDataAugmenter(ImageDataAugmenter):
@@ -230,9 +213,4 @@ class SaturationImageDataAugmenter(ImageDataAugmenter):
         return cv2.cvtColor(image, cv2.COLOR_HSV2RGB)
 
     def gen_random_kwargs(self, image):
-        perc = random.uniform(25, 75)
-        negative_perc = random.choice([True, False])
-        if negative_perc:
-            perc = -perc
-
-        return {'perc': perc}
+        return {'perc': random.uniform(-50, 50)}
