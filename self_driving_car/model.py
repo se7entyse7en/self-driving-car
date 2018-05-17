@@ -20,9 +20,15 @@ from self_driving_car.augmentation import SaturationImageDataAugmenter
 from self_driving_car.augmentation import ShadowImageDataAugmenter
 from self_driving_car.augmentation import VerticalShiftImageDataAugmenter
 from self_driving_car.dataset import DatasetGenerator
+from self_driving_car.utils import mean_exponential_error
 
 
-def build_model(input_shape, sgd_optimizer_params,
+LOSS_FUNCTIONS = {
+    'mee': mean_exponential_error
+}
+
+
+def build_model(input_shape, sgd_optimizer_params, loss_function,
                 conv_layers_dropout=0, fc_layers_dropout=0):
     model = Sequential()
 
@@ -55,8 +61,9 @@ def build_model(input_shape, sgd_optimizer_params,
 
     model.add(Dense(1))
 
-    sgd = optimizers.SGD(*sgd_optimizer_params)
-    model.compile(loss='mse', optimizer=sgd, metrics=['mae'])
+    sgd = optimizers.SGD(**sgd_optimizer_params)
+    model.compile(loss=LOSS_FUNCTIONS.get(loss_function, loss_function),
+                  optimizer=sgd, metrics=['mae'])
 
     return model
 

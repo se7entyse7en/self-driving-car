@@ -7,6 +7,9 @@ import cv2
 
 import pandas as pd
 
+import keras.backend as K
+import keras.losses
+
 from matplotlib import pyplot as plt
 
 from self_driving_car.dataset import preprocess_image
@@ -89,3 +92,10 @@ def try_multi_augmenters(augmenters, images_paths, figsize=(12, 5),
 
     fig.suptitle('Augmented images', fontsize=fontsize)
     plt.show()
+
+
+def mean_exponential_error(y_pred, y_true):
+    return K.mean(K.exp(K.abs(y_pred - y_true)) - 1, axis=-1)
+
+
+keras.losses.mean_exponential_error = mean_exponential_error
