@@ -87,10 +87,11 @@ def load_data_generator(csv_path, test_size=0.25, use_center_only=False):
 def train_model(model, csv_path, batch_size, epochs, test_size=0.25,
                 use_center_only=False, use_augmenters=True,
                 use_steering_correction=True, plot_history=False,
-                plot_output_file=None, **kwargs):
+                plot_output_file=None, model_name='', **kwargs):
     data_generator = load_data_generator(csv_path, test_size=test_size,
                                          use_center_only=use_center_only)
-    checkpoint = ModelCheckpoint('model-{epoch:03d}.h5')
+    model_name_fmt = '-'.join(['model', model_name, '{epoch:03d}'])
+    checkpoint = ModelCheckpoint(f'{model_name_fmt}.h5')
 
     training_set_gen = data_generator.training_set_batch_generator(
         batch_size, use_augmenters=use_augmenters,
