@@ -3,6 +3,7 @@ from keras import optimizers
 from keras.callbacks import ModelCheckpoint
 from keras.layers import Conv2D
 from keras.layers import Dense
+from keras.layers import Dropout
 from keras.layers import Flatten
 from keras.layers import Lambda
 
@@ -21,24 +22,37 @@ from self_driving_car.augmentation import VerticalShiftImageDataAugmenter
 from self_driving_car.dataset import DatasetGenerator
 
 
-def build_model(input_shape, sgd_optimizer_params):
+def build_model(input_shape, sgd_optimizer_params,
+                conv_layers_dropout=0, fc_layers_dropout=0):
     model = Sequential()
 
     model.add(Lambda(lambda x: x / 255. - 0.5, input_shape=input_shape))
 
-    model.add(Conv2D(3, (1, 1)))
+    conv_layers = (
+        Conv2D(3, (1, 1)),
+        Conv2D(24, (5, 5), strides=(2, 2), activation='elu'),
+        Conv2D(36, (5, 5), strides=(2, 2), activation='elu'),
+        Conv2D(48, (5, 5), strides=(2, 2), activation='elu'),
+        Conv2D(64, (3, 3), activation='elu'),
+        Conv2D(64, (3, 3), activation='elu')
+    )
 
-    model.add(Conv2D(24, (5, 5), strides=(2, 2), activation='elu'))
-    model.add(Conv2D(36, (5, 5), strides=(2, 2), activation='elu'))
-    model.add(Conv2D(48, (5, 5), strides=(2, 2), activation='elu'))
-    model.add(Conv2D(64, (3, 3), activation='elu'))
-    model.add(Conv2D(64, (3, 3), activation='elu'))
+    for conv_layer in conv_layers:
+        model.add(conv_layer)
+        model.add(Dropout(conv_layers_dropout))
 
     model.add(Flatten())
 
-    model.add(Dense(100, activation='elu'))
-    model.add(Dense(50, activation='elu'))
-    model.add(Dense(10, activation='elu'))
+    fc_layers = (
+        Dense(100, activation='elu'),
+        Dense(50, activation='elu'),
+        Dense(10, activation='elu')
+    )
+
+    for fc_layer in fc_layers:
+        model.add(fc_layer)
+        model.add(Dropout(fc_layers_dropout))
+
     model.add(Dense(1))
 
     sgd = optimizers.SGD(*sgd_optimizer_params)
