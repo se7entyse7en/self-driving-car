@@ -20,9 +20,15 @@ from self_driving_car.augmentation import SaturationImageDataAugmenter
 from self_driving_car.augmentation import ShadowImageDataAugmenter
 from self_driving_car.augmentation import VerticalShiftImageDataAugmenter
 from self_driving_car.dataset import DatasetGenerator
+from self_driving_car.utils import mean_exponential_error
 
 
-def build_model(input_shape, sgd_optimizer_params,
+LOSS_FUNCTIONS = {
+    'mee': mean_exponential_error
+}
+
+
+def build_model(input_shape, sgd_optimizer_params, loss_function,
                 conv_layers_dropout=0, fc_layers_dropout=0):
     model = Sequential()
 
@@ -55,8 +61,9 @@ def build_model(input_shape, sgd_optimizer_params,
 
     model.add(Dense(1))
 
-    sgd = optimizers.SGD(*sgd_optimizer_params)
-    model.compile(loss='mse', optimizer=sgd, metrics=['mae'])
+    sgd = optimizers.SGD(**sgd_optimizer_params)
+    model.compile(loss=LOSS_FUNCTIONS.get(loss_function, loss_function),
+                  optimizer=sgd, metrics=['mae'])
 
     return model
 
@@ -80,10 +87,11 @@ def load_data_generator(csv_path, test_size=0.25, use_center_only=False):
 def train_model(model, csv_path, batch_size, epochs, test_size=0.25,
                 use_center_only=False, use_augmenters=True,
                 use_steering_correction=True, plot_history=False,
-                plot_output_file=None, **kwargs):
+                plot_output_file=None, model_name='', **kwargs):
     data_generator = load_data_generator(csv_path, test_size=test_size,
                                          use_center_only=use_center_only)
-    checkpoint = ModelCheckpoint('model-{epoch:03d}.h5')
+    model_name_fmt = '-'.join(['model', model_name, '{epoch:03d}'])
+    checkpoint = ModelCheckpoint(f'{model_name_fmt}.h5')
 
     training_set_gen = data_generator.training_set_batch_generator(
         batch_size, use_augmenters=use_augmenters,
