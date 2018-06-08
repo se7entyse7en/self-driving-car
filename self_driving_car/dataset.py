@@ -1,3 +1,6 @@
+import os
+import shutil
+
 import cv2
 
 import numpy as np
@@ -16,6 +19,75 @@ STEERING_CORRECTION = {
 }
 
 
+class DatasetHandler(object):
+
+    COLUMNS = ('center', 'left', 'right', 'steering_angle', 'speed',
+               'throttle', 'brake')
+    TRANSFORMED_COLUMNS = ('pov', 'path', 'steering_angle')
+
+    @classmethod
+    def read(cls, path, transform=True):
+        dataset = pd.read_csv(path, header=None, names=cls.COLUMNS)
+        if transform:
+            dataset = pd.melt(dataset, id_vars=['steering_angle'],
+                              value_vars=['center', 'left', 'right'],
+                              var_name='pov', value_name='path')
+        return dataset
+
+    @classmethod
+    def write(cls, df, path, transformed=True):
+        cols = cls.TRANSFORMED_COLUMNS if transformed else cls.COLUMNS
+        df.to_csv(path, index=False, columns=cols)
+
+
+class DatasetPreprocessor(object):
+
+    @classmethod
+    def strip_straight(cls, input_csv_path, output_path,
+                       straight_threshold=0.1):
+        dataset = DatasetHandler.read(input_csv_path, transform=False)
+        dataset = dataset[dataset.steering_angle.abs() > straight_threshold]
+        dataset = cls._copy_images(dataset, output_path)
+
+        dataset.to_csv(os.path.join(output_path, 'driving_log.csv'),
+                       index=False, header=False,
+                       columns=DatasetHandler.COLUMNS)
+
+        return dataset
+
+    @classmethod
+    def _copy_images(cls, dataset, output_path):
+
+        def build_target_path(orig_path):
+            return os.path.join(
+                output_path, 'IMG', os.path.split(orig_path)[1])
+
+        def copy_images(row):
+            shutil.copy(row.center, row.center_target_path)
+            shutil.copy(row.left, row.left_target_path)
+            shutil.copy(row.right, row.right_target_path)
+
+        os.makedirs(os.path.join(output_path, 'IMG'))
+
+        extra_cols = ('center_target_path',
+                      'left_target_path',
+                      'right_target_path')
+        dataset = dataset.apply(
+            lambda r: pd.Series(
+                [r.center, r.left, r.right, r.steering_angle, r.speed,
+                 r.throttle, r.brake, build_target_path(r.center),
+                 build_target_path(r.left), build_target_path(r.right)],
+                index=DatasetHandler.COLUMNS + extra_cols), axis=1
+        )
+
+        dataset.apply(copy_images, axis=1)
+
+        dataset['center'] = dataset['center_target_path']
+        dataset['left'] = dataset['left_target_path']
+        dataset['right'] = dataset['right_target_path']
+        return dataset[list(DatasetHandler.COLUMNS)]
+
+
 class DatasetGenerator(object):
 
     def __init__(self, training_set, test_set, image_data_augmenters):
@@ -26,14 +98,7 @@ class DatasetGenerator(object):
     @classmethod
     def from_csv(cls, csv_path, image_data_augmenters, test_size=0.25,
                  use_center_only=False):
-        dataset = pd.read_csv(
-            csv_path, header=None,
-            names=('center', 'left', 'right', 'steering_angle',
-                   'speed', 'throttle', 'brake')
-        )
-        dataset = pd.melt(dataset, id_vars=['steering_angle'],
-                          value_vars=['center', 'left', 'right'],
-                          var_name='pov', value_name='path')
+        dataset = DatasetHandler.read(csv_path)
 
         center_only = dataset[dataset.pov == 'center']
         not_center_only = dataset[dataset.pov != 'center']
