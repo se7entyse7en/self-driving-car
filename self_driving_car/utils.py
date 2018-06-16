@@ -10,9 +10,13 @@ import pandas as pd
 import keras.backend as K
 import keras.losses
 
-from matplotlib import pyplot as plt
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 from self_driving_car.dataset import preprocess_image
+
+
+sns.set()
 
 
 def fix_images_path_prefix(csv_path, to_path_prefix, to_csv_path=None):
@@ -96,6 +100,13 @@ def try_multi_augmenters(augmenters, images_paths, figsize=(12, 5),
 
 def mean_exponential_error(y_pred, y_true):
     return K.mean(K.exp(K.abs(y_pred - y_true)) - 1, axis=-1)
+
+
+def plot_steerings_distribution(steering_angles, bins=None):
+    bins = bins or [-1.0, -0.7, -0.5, -0.3, -0.1, 0.1, 0.3, 0.5, 0.7, 1.0]
+    p = sns.distplot(steering_angles, bins=bins, kde=False)
+    p.set_xticks(bins)
+    plt.show()
 
 
 keras.losses.mean_exponential_error = mean_exponential_error
