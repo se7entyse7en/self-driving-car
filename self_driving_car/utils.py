@@ -1,6 +1,9 @@
 import math
 import os
 import random
+import subprocess
+import tempfile
+from datetime import datetime
 from functools import partial
 
 import cv2
@@ -13,6 +16,7 @@ import keras.losses
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+from self_driving_car.dataset import DatasetHandler
 from self_driving_car.dataset import preprocess_image
 
 
@@ -107,6 +111,72 @@ def plot_steerings_distribution(steering_angles, bins=None):
     p = sns.distplot(steering_angles, bins=bins, kde=False)
     p.set_xticks(bins)
     plt.show()
+
+
+def build_video_from_dataset(dataset_csv_path, output, steering_overlay=True,
+                             speed_modifier=1):
+
+    def add_steering_overlay(target_dir, orig_image_path, steering_angle):
+        image = cv2.imread(orig_image_path)
+
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        text = f'{steering_angle:+5.3f}'
+        textsize = cv2.getTextSize(text, font, 1, 2)[0]
+
+        textX = (image.shape[1] - textsize[0]) // 2
+        textY = image.shape[0] - textsize[1] - 10
+
+        cv2.putText(image, text, (textX, textY), font, 1, (0, 255, 0), 2)
+
+        output_path = os.path.join(
+            target_dir, os.path.split(orig_image_path)[1])
+
+        cv2.imwrite(output_path, image)
+
+        return output_path
+
+    def extract_time(item):
+        filename = os.path.split(item.center)[1]
+        return datetime.strptime(filename[7:-4], '%Y_%m_%d_%H_%M_%S_%f')
+
+    df = DatasetHandler.read(dataset_csv_path, transform=False)
+
+    with tempfile.TemporaryDirectory() as tmp_dir_name:
+        with open(os.path.join(
+                tmp_dir_name, 'concat_demuxer.txt'), 'w') as fout:
+            iterator = df.itertuples()
+            curr_item = next(iterator)
+            curr_time = extract_time(curr_item)
+            for next_item in iterator:
+                image_file_name = add_steering_overlay(
+                    tmp_dir_name, next_item.center,
+                    next_item.steering_angle)
+
+                next_time = extract_time(next_item)
+                duration = ((next_time - curr_time).total_seconds() *
+                            speed_modifier)
+
+                fout.write(f'file \'{image_file_name}\'\n')
+                fout.write(f'duration {duration}\n')
+
+                curr_item, curr_time = next_item, next_time
+
+        cmd = [
+            'ffmpeg',
+            '-f',
+            'concat',
+            '-safe',
+            '0',
+            '-i',
+            fout.name,
+            '-vsync',
+            'vfr',
+            '-pix_fmt',
+            'yuv420p',
+            output
+        ]
+
+        subprocess.run(cmd)
 
 
 keras.losses.mean_exponential_error = mean_exponential_error
