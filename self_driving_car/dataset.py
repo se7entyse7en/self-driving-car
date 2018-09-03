@@ -96,9 +96,9 @@ class DatasetGenerator(object):
         self._augmenters = image_data_augmenters
 
     @classmethod
-    def from_csv(cls, csv_path, image_data_augmenters, test_size=0.25,
+    def from_csv(cls, image_data_augmenters, *csv_paths, test_size=0.25,
                  use_center_only=False):
-        dataset = DatasetHandler.read(csv_path)
+        dataset = pd.concat(DatasetHandler.read(cp) for cp in csv_paths)
 
         center_only = dataset[dataset.pov == 'center']
         not_center_only = dataset[dataset.pov != 'center']

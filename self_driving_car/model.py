@@ -68,7 +68,7 @@ def build_model(input_shape, sgd_optimizer_params, loss_function,
     return model
 
 
-def load_data_generator(csv_path, test_size=0.25, use_center_only=False):
+def load_data_generator(*csv_paths, test_size=0.25, use_center_only=False):
     augmenters = [
         BlurringImageDataAugmenter(),
         BrightnessImageDataAugmenter(),
@@ -80,15 +80,16 @@ def load_data_generator(csv_path, test_size=0.25, use_center_only=False):
         ShadowImageDataAugmenter(),
         VerticalShiftImageDataAugmenter(),
     ]
-    return DatasetGenerator.from_csv(csv_path, augmenters, test_size=test_size,
-                                     use_center_only=use_center_only)
+    return DatasetGenerator.from_csv(
+        augmenters, *csv_paths, test_size=test_size,
+        use_center_only=use_center_only)
 
 
-def train_model(model, csv_path, batch_size, epochs, test_size=0.25,
+def train_model(model, batch_size, epochs, *csv_paths, test_size=0.25,
                 use_center_only=False, use_augmenters=True,
                 use_steering_correction=True, plot_history=False,
                 plot_output_file=None, model_name='', **kwargs):
-    data_generator = load_data_generator(csv_path, test_size=test_size,
+    data_generator = load_data_generator(*csv_paths, test_size=test_size,
                                          use_center_only=use_center_only)
     model_name_fmt = '-'.join(['model', model_name, '{epoch:03d}'])
     checkpoint = ModelCheckpoint(f'{model_name_fmt}.h5')
