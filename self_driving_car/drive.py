@@ -19,6 +19,7 @@ from keras import __version__ as keras_version
 from keras.models import load_model
 
 from self_driving_car.dataset import preprocess_image
+from self_driving_car.utils import mean_exponential_error
 
 
 sio = socketio.Server()
@@ -74,8 +75,10 @@ def telemetry(sid, data):
 
         if args.image_folder != '':
             timestamp = datetime.utcnow().strftime('%Y_%m_%d_%H_%M_%S_%f')[:-3]
-            image_filename = os.path.join(args.image_folder, timestamp)
-            image.save('{}.jpg'.format(image_filename))
+            image_filename = os.path.join(
+                args.image_folder, timestamp) + '.png'
+            image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+            cv2.imwrite(image_filename, image)
     else:
         # NOTE: DON'T EDIT THIS.
         sio.emit('manual', data={}, skip_sid=True)
