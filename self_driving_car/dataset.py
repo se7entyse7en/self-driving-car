@@ -12,11 +12,6 @@ from self_driving_car.augmentation import HorizontalFlipImageDataAugmenter
 
 IMAGE_WIDTH, IMAGE_HEIGHT = 64, 64
 CROP_TOP, CROP_BOTTOM = 30, 25
-STEERING_CORRECTION = {
-    'left': 0.25,
-    'center': 0,
-    'right': -0.25
-}
 
 
 class DatasetHandler(object):
@@ -92,14 +87,24 @@ class DatasetPreprocessor(object):
 
 class DatasetGenerator(object):
 
-    def __init__(self, training_set, test_set, image_data_augmenters):
+    def __init__(self, training_set, test_set, image_data_augmenters,
+                 steering_correction=None):
         self._training_set = training_set
         self._test_set = test_set
         self._augmenters = image_data_augmenters
+        if steering_correction:
+            steer_corr = {
+                'left': abs(steering_correction),
+                'center': 0,
+                'right': -abs(steering_correction)
+            }
+        else:
+            steer_corr = None
+        self._steering_correction = steer_corr
 
     @classmethod
     def from_csv(cls, image_data_augmenters, *csv_paths, test_size=0.25,
-                 use_center_only=False):
+                 use_center_only=False, steering_correction=None):
         dataset = DatasetHandler.read(*csv_paths)
 
         center_only = dataset[dataset.pov == 'center']
@@ -111,7 +116,8 @@ class DatasetGenerator(object):
         if not use_center_only:
             training_set = pd.concat([training_set, not_center_only])
 
-        return cls(training_set, test_set, image_data_augmenters)
+        return cls(training_set, test_set, image_data_augmenters,
+                   steering_correction=steering_correction)
 
     @classmethod
     def shuffle_dataset(cls, dataset):
@@ -125,27 +131,22 @@ class DatasetGenerator(object):
     def test_set(self):
         return self._test_set
 
-    def training_set_batch_generator(self, batch_size,
-                                     use_augmenters=True,
-                                     use_steering_correction=True):
+    def training_set_batch_generator(self, batch_size):
         yield from self._dataset_batch_generator(
-            self._training_set, batch_size, use_augmenters,
-            use_steering_correction)
+            self._training_set, batch_size)
 
     def test_set_batch_generator(self, batch_size):
         yield from self._dataset_batch_generator(
-            self._test_set, batch_size, False, False)
+            self._test_set, batch_size)
 
-    def _dataset_batch_generator(self, dataset, batch_size, use_augmenters,
-                                 use_steering_correction):
+    def _dataset_batch_generator(self, dataset, batch_size):
         i = 0
         batch_images = np.empty([batch_size, IMAGE_HEIGHT, IMAGE_WIDTH, 3],
                                 dtype=np.uint8)
         batch_steerings = np.empty(batch_size)
         while True:
             for image, steering_angle in self._flow(
-                    self.shuffle_dataset(dataset), use_augmenters,
-                    use_steering_correction):
+                    self.shuffle_dataset(dataset)):
                 batch_images[i] = image
                 batch_steerings[i] = steering_angle
                 i += 1
@@ -153,22 +154,20 @@ class DatasetGenerator(object):
                     yield batch_images, batch_steerings
                     i = 0
 
-    def _flow(self, dataset, use_augmenters, use_steering_correction):
+    def _flow(self, dataset):
         for _, row in dataset.iterrows():
-            yield self._flow_from_row(row, use_augmenters,
-                                      use_steering_correction)
+            yield self._flow_from_row(row)
 
-    def _flow_from_row(self, row, use_augmenters, use_steering_correction):
+    def _flow_from_row(self, row):
         image = preprocess_image_from_path(row['path'])
         steering_angle = row['steering_angle']
 
-        if use_steering_correction:
-            steering_angle += STEERING_CORRECTION[row['pov']]
+        if self._steering_correction:
+            steering_angle += self._steering_correction[row['pov']]
 
-        if use_augmenters:
-            for aug in self._augmenters:
-                image, steering_angle = self._augment(
-                    aug, image, steering_angle)
+        for aug in self._augmenters:
+            image, steering_angle = self._augment(
+                aug, image, steering_angle)
 
         return image, steering_angle
 
