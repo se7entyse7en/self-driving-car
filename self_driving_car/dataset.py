@@ -26,8 +26,9 @@ class DatasetHandler(object):
     TRANSFORMED_COLUMNS = ('pov', 'path', 'steering_angle')
 
     @classmethod
-    def read(cls, path, transform=True):
-        dataset = pd.read_csv(path, header=None, names=cls.COLUMNS)
+    def read(cls, *paths, transform=True):
+        dataset = pd.concat(pd.read_csv(p, header=None, names=cls.COLUMNS)
+                            for p in paths)
         if transform:
             dataset = pd.melt(dataset, id_vars=['steering_angle'],
                               value_vars=['center', 'left', 'right'],
@@ -37,7 +38,7 @@ class DatasetHandler(object):
     @classmethod
     def write(cls, df, path, transformed=True):
         cols = cls.TRANSFORMED_COLUMNS if transformed else cls.COLUMNS
-        df.to_csv(path, index=False, columns=cols)
+        df.to_csv(path, index=False, header=False, columns=cols)
 
 
 class DatasetPreprocessor(object):
@@ -46,13 +47,14 @@ class DatasetPreprocessor(object):
     def strip_straight(cls, input_csv_path, output_path,
                        straight_threshold=0.1):
         dataset = DatasetHandler.read(input_csv_path, transform=False)
+
         dataset = dataset[dataset.steering_angle.abs() > straight_threshold]
         dataset = cls._copy_images(dataset, output_path)
 
-        dataset.to_csv(os.path.join(output_path, 'driving_log.csv'),
-                       index=False, header=False,
-                       columns=DatasetHandler.COLUMNS)
-
+        DatasetHandler.write(
+            dataset, os.path.join(output_path, 'driving_log.csv'),
+            transformed=False
+        )
         return dataset
 
     @classmethod
@@ -98,7 +100,7 @@ class DatasetGenerator(object):
     @classmethod
     def from_csv(cls, image_data_augmenters, *csv_paths, test_size=0.25,
                  use_center_only=False):
-        dataset = pd.concat(DatasetHandler.read(cp) for cp in csv_paths)
+        dataset = DatasetHandler.read(*csv_paths)
 
         center_only = dataset[dataset.pov == 'center']
         not_center_only = dataset[dataset.pov != 'center']
