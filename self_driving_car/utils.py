@@ -8,6 +8,8 @@ from functools import partial
 
 import cv2
 
+import numpy as np
+
 import pandas as pd
 
 import keras.backend as K
@@ -18,6 +20,7 @@ import seaborn as sns
 
 from self_driving_car.dataset import DatasetHandler
 from self_driving_car.dataset import preprocess_image
+from self_driving_car.dataset import preprocess_image_from_path
 
 
 sns.set()
@@ -177,6 +180,20 @@ def build_video_from_dataset(dataset_csv_path, output, steering_overlay=True,
         ]
 
         subprocess.run(cmd)
+
+
+def debug_steering_correction(model, dataset):
+
+    def predict_for_image_path(im_path):
+        im = preprocess_image_from_path(im_path)
+        return float(model.predict(np.array([im]), batch_size=1))
+
+    dataset = dataset.apply(lambda r: pd.Series([
+        r.pov, r.path, r.steering_angle, predict_for_image_path(r.path)
+    ], index=DatasetHandler.TRANSFORMED_COLUMNS + ('predicted', )), axis=1)
+    dataset['offset'] = dataset['steering_angle'] - dataset['predicted']
+
+    return dataset
 
 
 keras.losses.mean_exponential_error = mean_exponential_error

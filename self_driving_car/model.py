@@ -68,8 +68,9 @@ def build_model(input_shape, sgd_optimizer_params, loss_function,
     return model
 
 
-def load_data_generator(*csv_paths, test_size=0.25, use_center_only=False):
-    augmenters = [
+def load_data_generator(*csv_paths, test_size=0.25, use_center_only=False,
+                        steering_correction=None, augmenters=None):
+    augmenters = augmenters or [
         BlurringImageDataAugmenter(),
         BrightnessImageDataAugmenter(),
         HorizontalFlipImageDataAugmenter(),
@@ -82,21 +83,23 @@ def load_data_generator(*csv_paths, test_size=0.25, use_center_only=False):
     ]
     return DatasetGenerator.from_csv(
         augmenters, *csv_paths, test_size=test_size,
-        use_center_only=use_center_only)
+        use_center_only=use_center_only,
+        steering_correction=steering_correction)
 
 
 def train_model(model, batch_size, epochs, *csv_paths, test_size=0.25,
-                use_center_only=False, use_augmenters=True,
-                use_steering_correction=True, plot_history=False,
+                use_center_only=False, augmenters=None,
+                steering_correction=None, plot_history=False,
                 plot_output_file=None, model_name='', **kwargs):
-    data_generator = load_data_generator(*csv_paths, test_size=test_size,
-                                         use_center_only=use_center_only)
+    data_generator = load_data_generator(
+        *csv_paths, test_size=test_size, use_center_only=use_center_only,
+        steering_correction=steering_correction, augmenters=augmenters
+    )
     model_name_fmt = '-'.join(['model', model_name, '{epoch:03d}'])
     checkpoint = ModelCheckpoint(f'{model_name_fmt}.h5')
 
     training_set_gen = data_generator.training_set_batch_generator(
-        batch_size, use_augmenters=use_augmenters,
-        use_steering_correction=use_steering_correction)
+        batch_size)
     test_set_gen = data_generator.test_set_batch_generator(batch_size)
 
     steps_per_epoch = kwargs.get(
