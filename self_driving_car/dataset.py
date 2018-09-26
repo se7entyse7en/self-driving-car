@@ -133,20 +133,21 @@ class DatasetGenerator(object):
 
     def training_set_batch_generator(self, batch_size):
         yield from self._dataset_batch_generator(
-            self._training_set, batch_size)
+            self._training_set, batch_size, self._augmenters)
 
     def validation_set_batch_generator(self, batch_size):
         yield from self._dataset_batch_generator(
             self._validation_set, batch_size)
 
-    def _dataset_batch_generator(self, dataset, batch_size):
+    def _dataset_batch_generator(self, dataset, batch_size, augmenters=None):
         i = 0
+        augmenters = augmenters or []
         batch_images = np.empty([batch_size, IMAGE_HEIGHT, IMAGE_WIDTH, 3],
                                 dtype=np.uint8)
         batch_steerings = np.empty(batch_size)
         while True:
             for image, steering_angle in self._flow(
-                    self.shuffle_dataset(dataset)):
+                    self.shuffle_dataset(dataset), augmenters):
                 batch_images[i] = image
                 batch_steerings[i] = steering_angle
                 i += 1
@@ -154,11 +155,11 @@ class DatasetGenerator(object):
                     yield batch_images, batch_steerings
                     i = 0
 
-    def _flow(self, dataset):
+    def _flow(self, dataset, augmenters):
         for _, row in dataset.iterrows():
-            yield self._flow_from_row(row)
+            yield self._flow_from_row(row, augmenters)
 
-    def _flow_from_row(self, row):
+    def _flow_from_row(self, row, augmenters):
         image = preprocess_image_from_path(row['path'])
         steering_angle = row['steering_angle']
 
