@@ -12,9 +12,6 @@ import numpy as np
 
 import pandas as pd
 
-import keras.backend as K
-import keras.losses
-
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -105,10 +102,6 @@ def try_multi_augmenters(augmenters, images_paths, figsize=(12, 5),
     plt.show()
 
 
-def mean_exponential_error(y_pred, y_true):
-    return K.mean(K.exp(K.abs(y_pred - y_true)) - 1, axis=-1)
-
-
 def plot_steerings_distribution(steering_angles, bins=None):
     bins = bins or [-1.0, -0.7, -0.5, -0.3, -0.1, 0.1, 0.3, 0.5, 0.7, 1.0]
     p = sns.distplot(steering_angles, bins=bins, kde=False)
@@ -194,6 +187,3 @@ def debug_steering_correction(model, dataset):
     dataset['offset'] = dataset['steering_angle'] - dataset['predicted']
 
     return dataset
-
-
-keras.losses.mean_exponential_error = mean_exponential_error

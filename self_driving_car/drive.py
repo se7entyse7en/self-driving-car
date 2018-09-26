@@ -19,7 +19,6 @@ from keras import __version__ as keras_version
 from keras.models import load_model
 
 from self_driving_car.dataset import preprocess_image
-from self_driving_car.utils import mean_exponential_error
 
 
 sio = socketio.Server()
