@@ -1,3 +1,5 @@
+import pandas as pd
+
 from keras import Sequential
 from keras import optimizers
 from keras.callbacks import ModelCheckpoint
@@ -90,7 +92,8 @@ def load_data_generator(*csv_paths, test_size=0.25, use_center_only=False,
 def train_model(model, batch_size, epochs, *csv_paths, test_size=0.25,
                 use_center_only=False, augmenters=None,
                 steering_correction=None, plot_history=False,
-                plot_output_file=None, model_name='', **kwargs):
+                plot_output_file=None, save_history=False,
+                history_output_file=None, model_name='', **kwargs):
     data_generator = load_data_generator(
         *csv_paths, test_size=test_size, use_center_only=use_center_only,
         steering_correction=steering_correction, augmenters=augmenters
@@ -119,12 +122,19 @@ def train_model(model, batch_size, epochs, *csv_paths, test_size=0.25,
         validation_steps=validation_steps,
     )
 
+    if save_history:
+        history_output_file = (history_output_file or
+                               f'history_{model_name}.csv')
+        report = pd.DataFrame(history.history)
+        report.to_csv(history_output_file)
+
     if plot_history:
-        plot_training_history(history, plot_output_file=plot_output_file,
+        plot_output_file = plot_output_file or f'plot_{model_name}.png'
+        plot_training_history(history, plot_output_file,
                               **kwargs.get('plot_savefig_kwargs', {}))
 
 
-def plot_training_history(history, figsize=(12, 5), plot_output_file=None,
+def plot_training_history(history, plot_output_file, figsize=(12, 5),
                           **kwargs):
     fig, axes = plt.subplots(1, 2, figsize=figsize)
 
@@ -136,10 +146,7 @@ def plot_training_history(history, figsize=(12, 5), plot_output_file=None,
 
     fig.suptitle('Training history', fontsize=16)
 
-    if plot_output_file is None:
-        plt.show()
-    else:
-        plt.savefig(plot_output_file, **kwargs)
+    plt.savefig(plot_output_file, **kwargs)
 
 
 def _subplot_training_history(history, ax, x_label, y_label, title,
