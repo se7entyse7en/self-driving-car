@@ -87,10 +87,10 @@ class DatasetPreprocessor(object):
 
 class DatasetGenerator(object):
 
-    def __init__(self, training_set, test_set, image_data_augmenters,
+    def __init__(self, training_set, validation_set, image_data_augmenters,
                  steering_correction=None):
         self._training_set = training_set
-        self._test_set = test_set
+        self._validation_set = validation_set
         self._augmenters = image_data_augmenters
         if steering_correction:
             steer_corr = {
@@ -103,20 +103,20 @@ class DatasetGenerator(object):
         self._steering_correction = steer_corr
 
     @classmethod
-    def from_csv(cls, image_data_augmenters, *csv_paths, test_size=0.25,
+    def from_csv(cls, image_data_augmenters, *csv_paths, validation_size=0.25,
                  use_center_only=False, steering_correction=None):
         dataset = DatasetHandler.read(*csv_paths)
 
         center_only = dataset[dataset.pov == 'center']
         not_center_only = dataset[dataset.pov != 'center']
 
-        test_set = center_only.sample(frac=test_size)
+        validation_set = center_only.sample(frac=validation_size)
         training_set = center_only.iloc[~center_only.index.isin(
-            test_set.index)]
+            validation_set.index)]
         if not use_center_only:
             training_set = pd.concat([training_set, not_center_only])
 
-        return cls(training_set, test_set, image_data_augmenters,
+        return cls(training_set, validation_set, image_data_augmenters,
                    steering_correction=steering_correction)
 
     @classmethod
@@ -128,16 +128,16 @@ class DatasetGenerator(object):
         return self._training_set
 
     @property
-    def test_set(self):
-        return self._test_set
+    def validation_set(self):
+        return self._validation_set
 
     def training_set_batch_generator(self, batch_size):
         yield from self._dataset_batch_generator(
             self._training_set, batch_size)
 
-    def test_set_batch_generator(self, batch_size):
+    def validation_set_batch_generator(self, batch_size):
         yield from self._dataset_batch_generator(
-            self._test_set, batch_size)
+            self._validation_set, batch_size)
 
     def _dataset_batch_generator(self, dataset, batch_size):
         i = 0

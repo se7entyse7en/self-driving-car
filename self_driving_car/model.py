@@ -70,8 +70,9 @@ def build_model(input_shape, sgd_optimizer_params, loss_function,
     return model
 
 
-def load_data_generator(*csv_paths, test_size=0.25, use_center_only=False,
-                        steering_correction=None, augmenters=None):
+def load_data_generator(*csv_paths, validation_size=0.25,
+                        use_center_only=False, steering_correction=None,
+                        augmenters=None):
     augmenters = augmenters or [
         BlurringImageDataAugmenter(),
         BrightnessImageDataAugmenter(),
@@ -84,18 +85,19 @@ def load_data_generator(*csv_paths, test_size=0.25, use_center_only=False,
         VerticalShiftImageDataAugmenter(),
     ]
     return DatasetGenerator.from_csv(
-        augmenters, *csv_paths, test_size=test_size,
+        augmenters, *csv_paths, validation_size=validation_size,
         use_center_only=use_center_only,
         steering_correction=steering_correction)
 
 
-def train_model(model, batch_size, epochs, *csv_paths, test_size=0.25,
+def train_model(model, batch_size, epochs, *csv_paths, validation_size=0.25,
                 use_center_only=False, augmenters=None,
                 steering_correction=None, plot_history=False,
                 plot_output_file=None, save_history=False,
                 history_output_file=None, model_name='', **kwargs):
     data_generator = load_data_generator(
-        *csv_paths, test_size=test_size, use_center_only=use_center_only,
+        *csv_paths, validation_size=validation_size,
+        use_center_only=use_center_only,
         steering_correction=steering_correction, augmenters=augmenters
     )
     model_name_fmt = '-'.join(['model', model_name, '{epoch:03d}'])
@@ -103,14 +105,16 @@ def train_model(model, batch_size, epochs, *csv_paths, test_size=0.25,
 
     training_set_gen = data_generator.training_set_batch_generator(
         batch_size)
-    test_set_gen = data_generator.test_set_batch_generator(batch_size)
+    validation_set_gen = data_generator.validation_set_batch_generator(
+        batch_size)
 
     steps_per_epoch = kwargs.get(
         'steps_per_epoch', int(
             data_generator.training_set.shape[0] / batch_size)
     )
     validation_steps = kwargs.get(
-        'validation_steps', int(data_generator.test_set.shape[0] / batch_size)
+        'validation_steps',
+        int(data_generator.validation_set.shape[0] / batch_size)
     )
     history = model.fit_generator(
         training_set_gen,
@@ -118,7 +122,7 @@ def train_model(model, batch_size, epochs, *csv_paths, test_size=0.25,
         epochs=epochs,
         verbose=1,
         callbacks=[checkpoint],
-        validation_data=test_set_gen,
+        validation_data=validation_set_gen,
         validation_steps=validation_steps,
     )
 
@@ -150,14 +154,14 @@ def plot_training_history(history, plot_output_file, figsize=(12, 5),
 
 
 def _subplot_training_history(history, ax, x_label, y_label, title,
-                              train_metric, test_metric):
+                              train_metric, validation_metric):
     ax.set_xlabel(x_label)
     ax.set_ylabel(y_label)
     ax.set_title(title)
 
     ax.plot(history.history[train_metric])
-    ax.plot(history.history[test_metric])
+    ax.plot(history.history[validation_metric])
 
     ax.yaxis.set_major_locator(MaxNLocator(integer=True))
 
-    ax.legend(['train', 'test'], loc='upper left')
+    ax.legend(['train', 'validation'], loc='upper left')
