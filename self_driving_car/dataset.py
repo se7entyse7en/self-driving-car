@@ -22,8 +22,8 @@ class DatasetHandler(object):
 
     @classmethod
     def read(cls, *paths, transform=True):
-        dataset = pd.concat(pd.read_csv(p, header=None, names=cls.COLUMNS)
-                            for p in paths)
+        dataset = pd.concat([pd.read_csv(p, header=None, names=cls.COLUMNS)
+                             for p in paths])
         if transform:
             dataset = pd.melt(dataset, id_vars=['steering_angle'],
                               value_vars=['center', 'left', 'right'],
