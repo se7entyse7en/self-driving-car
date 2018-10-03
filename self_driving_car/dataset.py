@@ -103,10 +103,18 @@ class DatasetGenerator(object):
         self._steering_correction = steer_corr
 
     @classmethod
-    def from_csv(cls, image_data_augmenters, *csv_paths, validation_size=0.25,
+    def from_csv(cls, csv_paths, image_data_augmenters, validation_size=0.25,
                  use_center_only=False, steering_correction=None):
-        dataset = DatasetHandler.read(*csv_paths)
+        return cls.from_dataframe(
+            image_data_augmenters, DatasetHandler.read(*csv_paths),
+            validation_size=validation_size, use_center_only=use_center_only,
+            steering_correction=steering_correction
+        )
 
+    @classmethod
+    def from_dataframe(cls, dataset, image_data_augmenters,
+                       validation_size=0.25, use_center_only=False,
+                       steering_correction=None):
         center_only = dataset[dataset.pov == 'center']
         not_center_only = dataset[dataset.pov != 'center']
 

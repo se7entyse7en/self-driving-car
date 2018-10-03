@@ -1,3 +1,5 @@
+from functools import partial
+
 import pandas as pd
 
 from keras import Sequential
@@ -63,7 +65,7 @@ def build_model(input_shape, sgd_optimizer_params,
     return model
 
 
-def load_data_generator(*csv_paths, validation_size=0.25,
+def load_data_generator(dataset=None, csv_paths=None, validation_size=0.25,
                         use_center_only=False, steering_correction=None,
                         augmenters=None):
     augmenters = augmenters or [
@@ -77,19 +79,28 @@ def load_data_generator(*csv_paths, validation_size=0.25,
         ShadowImageDataAugmenter(),
         VerticalShiftImageDataAugmenter(),
     ]
-    return DatasetGenerator.from_csv(
-        augmenters, *csv_paths, validation_size=validation_size,
+
+    if dataset is not None:
+        factory = partial(DatasetGenerator.from_dataframe, dataset=dataset)
+    elif csv_paths is not None:
+        factory = partial(DatasetGenerator.from_csv, csv_paths=csv_paths)
+    else:
+        raise Exception('Not `dataset` nor `csv_paths` are provided')
+
+    return factory(
+        image_data_augmenters=augmenters, validation_size=validation_size,
         use_center_only=use_center_only,
-        steering_correction=steering_correction)
+        steering_correction=steering_correction
+    )
 
 
-def train_model(model, batch_size, epochs, *csv_paths, validation_size=0.25,
-                use_center_only=False, augmenters=None,
+def train_model(model, batch_size, epochs, dataset=None, csv_paths=None,
+                validation_size=0.25, use_center_only=False, augmenters=None,
                 steering_correction=None, plot_history=False,
                 plot_output_file=None, save_history=False,
                 history_output_file=None, model_name='', **kwargs):
     data_generator = load_data_generator(
-        *csv_paths, validation_size=validation_size,
+        dataset=dataset, csv_paths=csv_paths, validation_size=validation_size,
         use_center_only=use_center_only,
         steering_correction=steering_correction, augmenters=augmenters
     )
