@@ -38,45 +38,19 @@ class DatasetHandler(object):
 
 class DatasetGenerator(object):
 
-    def __init__(self, training_set, validation_set, image_data_augmenters,
-                 steering_correction=None):
+    def __init__(self, training_set, validation_set, image_data_augmenters):
         self._training_set = training_set
         self._validation_set = validation_set
         self._augmenters = image_data_augmenters
-        if steering_correction:
-            steer_corr = {
-                'left': abs(steering_correction),
-                'center': 0,
-                'right': -abs(steering_correction)
-            }
-        else:
-            steer_corr = None
-        self._steering_correction = steer_corr
-
-    @classmethod
-    def from_csv(cls, csv_paths, image_data_augmenters, validation_size=0.25,
-                 use_center_only=False, steering_correction=None):
-        return cls.from_dataframe(
-            image_data_augmenters, DatasetHandler.read(*csv_paths),
-            validation_size=validation_size, use_center_only=use_center_only,
-            steering_correction=steering_correction
-        )
 
     @classmethod
     def from_dataframe(cls, dataset, image_data_augmenters,
-                       validation_size=0.25, use_center_only=False,
-                       steering_correction=None):
-        center_only = dataset[dataset.pov == 'center']
-        not_center_only = dataset[dataset.pov != 'center']
-
-        validation_set = center_only.sample(frac=validation_size)
-        training_set = center_only.iloc[~center_only.index.isin(
+                       validation_size=0.25):
+        validation_set = dataset.sample(frac=validation_size)
+        training_set = dataset.iloc[~dataset.index.isin(
             validation_set.index)]
-        if not use_center_only:
-            training_set = pd.concat([training_set, not_center_only])
 
-        return cls(training_set, validation_set, image_data_augmenters,
-                   steering_correction=steering_correction)
+        return cls(training_set, validation_set, image_data_augmenters)
 
     @classmethod
     def shuffle_dataset(cls, dataset):
@@ -120,23 +94,13 @@ class DatasetGenerator(object):
 
     def _flow_from_row(self, row, augmenters):
         image = preprocess_image_from_path(row['path'])
-        steering_angle = row['steering_angle']
-
-        if self._steering_correction:
-            steering_angle += self._steering_correction[row['pov']]
+        if row.get('flip'):
+            image = HorizontalFlipImageDataAugmenter.process(image)
 
         for aug in self._augmenters:
-            image, steering_angle = self._augment(
-                aug, image, steering_angle)
+            image = aug.process_random(image)
 
-        return image, steering_angle
-
-    def _augment(self, augmenter, image, steering_angle):
-        augmented_image = augmenter.process_random(image)
-        if isinstance(augmenter, HorizontalFlipImageDataAugmenter):
-            steering_angle = -steering_angle
-
-        return augmented_image, steering_angle
+        return image, row['steering_angle']
 
 
 def preprocess_image_from_path(image_path):
