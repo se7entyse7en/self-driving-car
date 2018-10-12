@@ -102,10 +102,11 @@ def try_multi_augmenters(augmenters, images_paths, figsize=(12, 5),
     plt.show()
 
 
-def plot_steerings_distribution(steering_angles, bins=None):
-    bins = bins or [-1.0, -0.7, -0.5, -0.3, -0.1, 0.1, 0.3, 0.5, 0.7, 1.0]
-    p = sns.distplot(steering_angles, bins=bins, kde=False)
-    p.set_xticks(bins)
+def plot_steerings_distribution(dataset, bins=None, xticks=None):
+    p = sns.distplot(dataset.steering_angle, bins=bins, kde=False)
+    if xticks is not None:
+        p.set_xticks(xticks)
+    plt.xlim(-1, 1)
     plt.show()
 
 
