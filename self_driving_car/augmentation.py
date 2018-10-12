@@ -8,23 +8,28 @@ import numpy as np
 
 class ImageDataAugmenter(object):
 
-    def generate(self, image, all_kwargs):
+    @classmethod
+    def generate(cls, image, all_kwargs):
         for kwargs in all_kwargs:
-            yield self.process(image, **kwargs)
+            yield cls.process(image, **kwargs)
 
-    def process(self, image, *args, **kwargs):
+    @classmethod
+    def process(cls, image, *args, **kwargs):
         raise NotImplementedError()
 
-    def process_random(self, image):
-        return self.process(image, **self.gen_random_kwargs(image))
+    @classmethod
+    def process_random(cls, image):
+        return cls.process(image, **cls.gen_random_kwargs(image))
 
-    def gen_random_kwargs(self, image):
+    @classmethod
+    def gen_random_kwargs(cls, image):
         raise NotImplementedError()
 
 
 class BaseRegionBrightnessDataAugmenter(ImageDataAugmenter):
 
-    def process(self, image, brightness_perc, slope, intercept, upper=True):
+    @classmethod
+    def process(cls, image, brightness_perc, slope, intercept, upper=True):
         hsv_image = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
         H, S, V = cv2.split(hsv_image)
 
@@ -49,7 +54,8 @@ class BaseRegionBrightnessDataAugmenter(ImageDataAugmenter):
         image = cv2.merge([H, S, V_modified])
         return cv2.cvtColor(image, cv2.COLOR_HSV2RGB)
 
-    def gen_random_kwargs(self, image):
+    @classmethod
+    def gen_random_kwargs(cls, image):
         height, width = image.shape[:2]
 
         intercept = random.uniform(-width, 2 * width)
@@ -78,15 +84,17 @@ class BaseRegionBrightnessDataAugmenter(ImageDataAugmenter):
 
 class ReflectionImageDataAugmenter(BaseRegionBrightnessDataAugmenter):
 
-    def process(self, image, brightness_perc, slope, intercept, upper=True):
+    @classmethod
+    def process(cls, image, brightness_perc, slope, intercept, upper=True):
         if brightness_perc <= 0:
             raise ValueError('The change in brigthness must be positive')
 
-        return super(ReflectionImageDataAugmenter, self).process(
+        return super(ReflectionImageDataAugmenter, cls).process(
             image, brightness_perc, slope, intercept, upper=upper)
 
-    def gen_random_kwargs(self, image):
-        kwargs = super(ReflectionImageDataAugmenter, self).gen_random_kwargs(
+    @classmethod
+    def gen_random_kwargs(cls, image):
+        kwargs = super(ReflectionImageDataAugmenter, cls).gen_random_kwargs(
             image)
         kwargs['brightness_perc'] = random.uniform(0, 25)
 
@@ -95,15 +103,17 @@ class ReflectionImageDataAugmenter(BaseRegionBrightnessDataAugmenter):
 
 class ShadowImageDataAugmenter(BaseRegionBrightnessDataAugmenter):
 
-    def process(self, image, brightness_perc, slope, intercept, upper=True):
+    @classmethod
+    def process(cls, image, brightness_perc, slope, intercept, upper=True):
         if brightness_perc >= 0:
             raise ValueError('The change in brigthness must be negative')
 
-        return super(ShadowImageDataAugmenter, self).process(
+        return super(ShadowImageDataAugmenter, cls).process(
             image, brightness_perc, slope, intercept, upper=upper)
 
-    def gen_random_kwargs(self, image):
-        kwargs = super(ShadowImageDataAugmenter, self).gen_random_kwargs(image)
+    @classmethod
+    def gen_random_kwargs(cls, image):
+        kwargs = super(ShadowImageDataAugmenter, cls).gen_random_kwargs(image)
         kwargs['brightness_perc'] = random.uniform(-25, 0)
 
         return kwargs
@@ -111,11 +121,13 @@ class ShadowImageDataAugmenter(BaseRegionBrightnessDataAugmenter):
 
 class VerticalShiftImageDataAugmenter(ImageDataAugmenter):
 
-    def process(self, image, shift):
+    @classmethod
+    def process(cls, image, shift):
         M = np.float64([[1, 0, 0], [0, 1, -shift]])
         return cv2.warpAffine(image, M, (image.shape[1], image.shape[0]))
 
-    def gen_random_kwargs(self, image):
+    @classmethod
+    def gen_random_kwargs(cls, image):
         height = image.shape[0]
         max_abs_shift = height / 100 * 7.5
         shift = random.uniform(-max_abs_shift, max_abs_shift)
@@ -125,25 +137,30 @@ class VerticalShiftImageDataAugmenter(ImageDataAugmenter):
 
 class BlurringImageDataAugmenter(ImageDataAugmenter):
 
-    def process(self, image, window_size):
+    @classmethod
+    def process(cls, image, window_size):
         return cv2.blur(image, (window_size, window_size))
 
-    def gen_random_kwargs(self, image):
+    @classmethod
+    def gen_random_kwargs(cls, image):
         return {'window_size': random.choice(range(1, 9, 2))}
 
 
 class HorizontalFlipImageDataAugmenter(ImageDataAugmenter):
 
-    def process(self, image):
+    @classmethod
+    def process(cls, image):
         return cv2.flip(image, 1)
 
-    def gen_random_kwargs(self, image):
+    @classmethod
+    def gen_random_kwargs(cls, image):
         return {}
 
 
 class RotationImageDataAugenter(ImageDataAugmenter):
 
-    def process(self, image, angle, center=None):
+    @classmethod
+    def process(cls, image, angle, center=None):
         height, width = image.shape[:2]
 
         if center is None:
@@ -152,13 +169,15 @@ class RotationImageDataAugenter(ImageDataAugmenter):
         M = cv2.getRotationMatrix2D(center, angle, 1)
         return cv2.warpAffine(image, M, (width, height))
 
-    def gen_random_kwargs(self, image):
+    @classmethod
+    def gen_random_kwargs(cls, image):
         return {'angle': random.uniform(-5, 5)}
 
 
 class BrightnessImageDataAugmenter(ImageDataAugmenter):
 
-    def process(self, image, perc):
+    @classmethod
+    def process(cls, image, perc):
         hsv_image = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
         H, S, V = cv2.split(hsv_image)
 
@@ -171,13 +190,15 @@ class BrightnessImageDataAugmenter(ImageDataAugmenter):
         image = cv2.merge([H, S, V_modified])
         return cv2.cvtColor(image, cv2.COLOR_HSV2RGB)
 
-    def gen_random_kwargs(self, image):
+    @classmethod
+    def gen_random_kwargs(cls, image):
         return {'perc': random.uniform(-25, 25)}
 
 
 class HueImageDataAugmenter(ImageDataAugmenter):
 
-    def process(self, image, angle):
+    @classmethod
+    def process(cls, image, angle):
         if angle < -180 or angle > 180:
             raise ValueError('Angle must be in range (-180, 180)')
 
@@ -193,13 +214,15 @@ class HueImageDataAugmenter(ImageDataAugmenter):
         image = cv2.merge([H_modified, S, V])
         return cv2.cvtColor(image, cv2.COLOR_HSV2RGB)
 
-    def gen_random_kwargs(self, image):
+    @classmethod
+    def gen_random_kwargs(cls, image):
         return {'angle': random.choice(range(-25, 25))}
 
 
 class SaturationImageDataAugmenter(ImageDataAugmenter):
 
-    def process(self, image, perc):
+    @classmethod
+    def process(cls, image, perc):
         hsv_image = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
         H, S, V = cv2.split(hsv_image)
 
@@ -212,5 +235,6 @@ class SaturationImageDataAugmenter(ImageDataAugmenter):
         image = cv2.merge([H, S_modified, V])
         return cv2.cvtColor(image, cv2.COLOR_HSV2RGB)
 
-    def gen_random_kwargs(self, image):
+    @classmethod
+    def gen_random_kwargs(cls, image):
         return {'perc': random.uniform(-50, 50)}
