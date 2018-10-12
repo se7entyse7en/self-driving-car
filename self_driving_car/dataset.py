@@ -36,55 +36,6 @@ class DatasetHandler(object):
         df.to_csv(path, index=False, header=False, columns=cols)
 
 
-class DatasetPreprocessor(object):
-
-    @classmethod
-    def strip_straight(cls, input_csv_path, output_path,
-                       straight_threshold=0.1):
-        dataset = DatasetHandler.read(input_csv_path, transform=False)
-
-        dataset = dataset[dataset.steering_angle.abs() > straight_threshold]
-        dataset = cls._copy_images(dataset, output_path)
-
-        DatasetHandler.write(
-            dataset, os.path.join(output_path, 'driving_log.csv'),
-            transformed=False
-        )
-        return dataset
-
-    @classmethod
-    def _copy_images(cls, dataset, output_path):
-
-        def build_target_path(orig_path):
-            return os.path.join(
-                output_path, 'IMG', os.path.split(orig_path)[1])
-
-        def copy_images(row):
-            shutil.copy(row.center, row.center_target_path)
-            shutil.copy(row.left, row.left_target_path)
-            shutil.copy(row.right, row.right_target_path)
-
-        os.makedirs(os.path.join(output_path, 'IMG'))
-
-        extra_cols = ('center_target_path',
-                      'left_target_path',
-                      'right_target_path')
-        dataset = dataset.apply(
-            lambda r: pd.Series(
-                [r.center, r.left, r.right, r.steering_angle, r.speed,
-                 r.throttle, r.brake, build_target_path(r.center),
-                 build_target_path(r.left), build_target_path(r.right)],
-                index=DatasetHandler.COLUMNS + extra_cols), axis=1
-        )
-
-        dataset.apply(copy_images, axis=1)
-
-        dataset['center'] = dataset['center_target_path']
-        dataset['left'] = dataset['left_target_path']
-        dataset['right'] = dataset['right_target_path']
-        return dataset[list(DatasetHandler.COLUMNS)]
-
-
 class DatasetGenerator(object):
 
     def __init__(self, training_set, validation_set, image_data_augmenters,
