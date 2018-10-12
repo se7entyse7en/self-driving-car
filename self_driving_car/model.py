@@ -1,5 +1,3 @@
-from functools import partial
-
 import pandas as pd
 
 from keras import Sequential
@@ -16,7 +14,6 @@ from matplotlib.ticker import MaxNLocator
 
 from self_driving_car.augmentation import BlurringImageDataAugmenter
 from self_driving_car.augmentation import BrightnessImageDataAugmenter
-from self_driving_car.augmentation import HorizontalFlipImageDataAugmenter
 from self_driving_car.augmentation import HueImageDataAugmenter
 from self_driving_car.augmentation import ReflectionImageDataAugmenter
 from self_driving_car.augmentation import RotationImageDataAugenter
@@ -65,44 +62,31 @@ def build_model(input_shape, sgd_optimizer_params,
     return model
 
 
-def load_data_generator(dataset=None, csv_paths=None, validation_size=0.25,
-                        use_center_only=False, steering_correction=None,
-                        augmenters=None):
-    augmenters = augmenters or [
-        BlurringImageDataAugmenter(),
-        BrightnessImageDataAugmenter(),
-        HorizontalFlipImageDataAugmenter(),
-        HueImageDataAugmenter(),
-        ReflectionImageDataAugmenter(),
-        RotationImageDataAugenter(),
-        SaturationImageDataAugmenter(),
-        ShadowImageDataAugmenter(),
-        VerticalShiftImageDataAugmenter(),
-    ]
+def load_data_generator(dataset, validation_size=0.25, augmenters=None):
+    if augmenters is None:
+        augmenters = [
+            BlurringImageDataAugmenter,
+            BrightnessImageDataAugmenter,
+            HueImageDataAugmenter,
+            ReflectionImageDataAugmenter,
+            RotationImageDataAugenter,
+            SaturationImageDataAugmenter,
+            ShadowImageDataAugmenter,
+            VerticalShiftImageDataAugmenter,
+        ]
 
-    if dataset is not None:
-        factory = partial(DatasetGenerator.from_dataframe, dataset=dataset)
-    elif csv_paths is not None:
-        factory = partial(DatasetGenerator.from_csv, csv_paths=csv_paths)
-    else:
-        raise Exception('Not `dataset` nor `csv_paths` are provided')
-
-    return factory(
-        image_data_augmenters=augmenters, validation_size=validation_size,
-        use_center_only=use_center_only,
-        steering_correction=steering_correction
-    )
+    return DatasetGenerator.from_dataframe(dataset, augmenters,
+                                           validation_size=validation_size)
 
 
-def train_model(model, batch_size, epochs, dataset=None, csv_paths=None,
-                validation_size=0.25, use_center_only=False, augmenters=None,
-                steering_correction=None, plot_history=False,
-                plot_output_file=None, save_history=False,
-                history_output_file=None, model_name='', **kwargs):
+def train_model(model, dataset, batch_size, epochs,
+                validation_size=0.25, augmenters=None,
+                plot_history=False, plot_output_file=None,
+                save_history=False, history_output_file=None,
+                model_name='', **kwargs):
     data_generator = load_data_generator(
-        dataset=dataset, csv_paths=csv_paths, validation_size=validation_size,
-        use_center_only=use_center_only,
-        steering_correction=steering_correction, augmenters=augmenters
+        dataset, validation_size=validation_size,
+        augmenters=augmenters
     )
     model_name_fmt = '-'.join(['model', model_name, '{epoch:03d}'])
     checkpoint = ModelCheckpoint(f'{model_name_fmt}.h5')
